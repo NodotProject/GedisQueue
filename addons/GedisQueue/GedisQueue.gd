@@ -4,6 +4,7 @@ class_name GedisQueue
 const QUEUE_PREFIX = "gedis_queue:"
 
 const STATUS_WAITING = "waiting"
+const STATUS_ACTIVE = "active"
 const STATUS_COMPLETED = "completed"
 const STATUS_FAILED = "failed"
 
@@ -13,10 +14,6 @@ var _workers: Array[GedisWorker] = []
 func setup(gedis_instance: Gedis = null):
 	if gedis_instance:
 		_gedis = gedis_instance
-	else:
-		_gedis = Gedis.new()
-		_gedis.name = "GedisQueue"
-		add_child(_gedis)
 
 func add(queue_name: String, job_data: Dictionary, opts: Dictionary = {}) -> GedisJob:
 	_ensure_gedis_instance()
@@ -51,7 +48,7 @@ func get_job(queue_name: String, job_id: String) -> GedisJob:
 	return job
 
 func get_jobs(queue_name: String, types: Array, start: int = 0, end: int = -1, asc: bool = false) -> Array[GedisJob]:
-	var jobs: Array[GedisJob]
+	var jobs: Array[GedisJob] = []
 	for type in types:
 		var queue_key = _get_queue_key(queue_name, type)
 		var job_ids = _gedis.lrange(queue_key, start, end)
@@ -114,7 +111,7 @@ func process(queue_name: String, processor: Callable) -> GedisWorker:
 	var worker = GedisWorker.new(self, queue_name, processor)
 	add_child(worker)
 	_workers.append(worker)
-	worker.start()
+	await worker.start()
 	return worker
 
 func close(queue_name: String) -> void:
@@ -128,9 +125,16 @@ func close(queue_name: String) -> void:
 		_workers.erase(worker)
 		worker.queue_free()
 
+func _enter_tree() -> void:
+	if !_gedis:
+		_gedis = Gedis.new()
+		_gedis.name = "GedisQueue"
+		add_child(_gedis)
+
 func _mark_job_completed(job: GedisJob, return_value):
 	_ensure_gedis_instance()
 	var job_key = _get_job_key(job.queue_name, job.id)
+	_gedis.lrem(_get_queue_key(job.queue_name, STATUS_ACTIVE), 1, job.id)
 	_gedis.hset(job_key, "status", STATUS_COMPLETED)
 	_gedis.hset(job_key, "returnvalue", JSON.stringify(return_value))
 	_gedis.lpush(_get_queue_key(job.queue_name, STATUS_COMPLETED), job.id)
@@ -139,6 +143,7 @@ func _mark_job_completed(job: GedisJob, return_value):
 func _mark_job_failed(job: GedisJob, error_message: String):
 	_ensure_gedis_instance()
 	var job_key = _get_job_key(job.queue_name, job.id)
+	_gedis.lrem(_get_queue_key(job.queue_name, STATUS_ACTIVE), 1, job.id)
 	_gedis.hset(job_key, "status", STATUS_FAILED)
 	_gedis.hset(job_key, "failed_reason", error_message)
 	_gedis.lpush(_get_queue_key(job.queue_name, STATUS_FAILED), job.id)

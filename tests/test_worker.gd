@@ -19,7 +19,7 @@ func test_worker_processes_job_and_emits_completed():
 	var processor = func(job: GedisJob):
 		return job.data.value * 2
 
-	_worker = _queue.process("test_queue", processor)
+	_worker = await _queue.process("test_queue", processor)
 
 	var job_data = {"value": 5}
 	var job: GedisJob = _queue.add("test_queue", job_data)

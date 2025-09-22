@@ -15,4 +15,10 @@ func before_all():
 	assert_not_null(_queue, "GedisQueue instance should be created.")
 
 func after_all():
-	_queue.queue_free()
+	var gedis_instance = get_tree().get_root().get_node("Gedis")
+	if gedis_instance:
+		gedis_instance.flushall()
+		gedis_instance.queue_free()
+	
+	if is_instance_valid(_queue):
+		_queue.queue_free()

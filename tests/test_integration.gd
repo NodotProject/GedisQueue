@@ -15,7 +15,7 @@ func test_job_lifecycle():
 	var processor = func(job):
 		return "processed"
 
-	var worker = _queue.process("test_queue", processor)
+	var worker = await _queue.process("test_queue", processor)
 	var job = _queue.add("test_queue", {"data": "test"})
 
 	await worker.completed

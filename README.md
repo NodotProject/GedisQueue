@@ -29,11 +29,9 @@ GedisQueue allows you to manage and process asynchronous jobs in your Godot proj
 
 ## Features
 
-- **Persistent Job Queues**: Jobs are stored in Gedis, ensuring they are not lost even if the application closes.
 - **Job Lifecycle Management**: Track jobs through various statuses, including `waiting`, `active`, `completed`, and `failed`.
 - **Flexible Job Processors**: Define custom logic for processing jobs using simple functions.
-- **Delayed Jobs**: Schedule jobs to be executed at a future time.
-- **Job Retries**: Automatically retry failed jobs with configurable retry attempts.
+- **Tooling**: Gedis debugger tool can be used to assist development.
 
 ## Installation
 
@@ -108,36 +106,9 @@ for job in failed_jobs:
     print("Job %s failed with error: %s" % [job.id, job.failed_reason])
 ```
 
-### Delayed Jobs
+### Known Issues
 
-You can schedule a job to be executed after a certain delay using the `delay` option. This is perfect for time-based game mechanics, like a power-up that activates after a cooldown.
-
-```gdscript
-# This job will be processed after a 10-second delay
-var job = queue.add("game_events", {"event": "spawn_boss", "level": 5}, {
-    "delay": 10000 # in milliseconds
-})
-```
-
-### Retrying Failed Jobs
-
-GedisQueue can automatically retry failed jobs. You can configure the number of retry attempts using the `attempts` option. This is useful for critical operations like saving player progress, where a temporary network issue might cause a failure.
-
-```gdscript
-var processor = func(job):
-    var save_successful = PlayerData.save_to_cloud(job.data)
-    if not save_successful:
-        # Simulate a random failure
-        return GedisQueue.ERR_FAILED
-    return "Player data saved"
-
-# This job will be retried up to 3 times if it fails
-var job = queue.add("save_game", {"player_id": "player123", "level": 10}, {
-    "attempts": 3
-})
-
-queue.process("save_game", processor)
-```
+- `remove_job` does not currently remove the job ID from the queue lists in Gedis. This means a removed job might still appear in `get_jobs` results if it was in a `waiting`, `completed`, or `failed` list.
 
 ## Contributing
 
