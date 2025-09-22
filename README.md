@@ -106,10 +106,6 @@ for job in failed_jobs:
     print("Job %s failed with error: %s" % [job.id, job.failed_reason])
 ```
 
-### Known Issues
-
-- `remove_job` does not currently remove the job ID from the queue lists in Gedis. This means a removed job might still appear in `get_jobs` results if it was in a `waiting`, `completed`, or `failed` list.
-
 ## Contributing
 
 This addon is implemented in GDScript and does not require native compilation. To work on or test the addon, follow these steps:

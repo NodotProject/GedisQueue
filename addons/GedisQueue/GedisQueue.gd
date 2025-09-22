@@ -86,8 +86,12 @@ func remove_job(queue_name: String, job_id: String):
 	_ensure_gedis_instance()
 
 	var job_key = _get_job_key(queue_name, job_id)
-	# TODO: Does this remove the job from the queue list?
 	_gedis.del(job_key)
+
+	# Remove the job ID from all possible status lists
+	for status in [STATUS_WAITING, STATUS_ACTIVE, STATUS_COMPLETED, STATUS_FAILED]:
+		var queue_key = _get_queue_key(queue_name, status)
+		_gedis.lrem(queue_key, 0, job_id)
 
 func _get_queue_key(queue_name: String, status: String = STATUS_WAITING) -> String:
 	return "%s%s:%s" % [QUEUE_PREFIX, queue_name, status]
