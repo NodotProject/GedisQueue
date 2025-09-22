@@ -14,7 +14,7 @@
 
 [![Discord](https://img.shields.io/discord/1089846386566111322)](https://discord.gg/Rx9CZX4sjG) [![Mastodon](https://img.shields.io/mastodon/follow/110106863700290562?domain=mastodon.gamedev.place)](https://mastodon.gamedev.place/@krazyjakee) [![Youtube](https://img.shields.io/youtube/channel/subscribers/UColWkNMgHseKyU7D1QGeoyQ)](https://www.youtube.com/@GodotNodot) [![GitHub Sponsors](https://img.shields.io/github/sponsors/krazyjakee)](https://github.com/sponsors/krazyjakee) [![GitHub Stars](https://img.shields.io/github/stars/NodotProject/GedisQueue)](https://github.com/NodotProject/GedisQueue)
 
-![Stats](https://repobeats.axiom.co/api/embed/2a34f9ee10e86a04db97091d90c892c07c8314d1.svg "Repobeats analytics image")
+![Stats](https://repobeats.axiom.co/api/embed/2978242cbbf700a47652e24c1327f7430cbd4f70.svg "Repobeats analytics image")
 
 GedisQueue allows you to manage and process asynchronous jobs in your Godot projects, making it ideal for handling tasks like background processing, notifications, and more.
 
