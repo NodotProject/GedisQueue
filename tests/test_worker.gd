@@ -16,14 +16,14 @@ func after_each():
 		_queue.queue_free()
 
 func test_worker_processes_job_and_emits_completed():
-	var processor = func(job):
+	var processor = func(job: GedisJob):
 		return job.data.value * 2
 
 	_worker = _queue.process("test_queue", processor)
-	
+
 	var job_data = {"value": 5}
-	var job = _queue.add("test_queue", job_data)
-	
-	var result = await _worker.completed
+	var job: GedisJob = _queue.add("test_queue", job_data)
+
+	var result: Array = await _worker.completed
 	assert_eq(result[0].id, job.id, "Job ID should match.")
-	assert_eq(result[1], 10, "Processor should have doubled the value.")
+	assert_eq(result[1], 10.0, "Processor should have doubled the value.")
