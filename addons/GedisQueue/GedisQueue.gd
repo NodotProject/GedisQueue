@@ -1,6 +1,12 @@
 extends Node
 class_name GedisQueue
 
+## Manages job queues and workers.
+##
+## This class provides a high-level interface for creating and managing job queues
+## that are processed by workers. It uses Gedis (a Godot Redis-like in-memory
+## data structure server) for storing job information and queue state.
+
 const QUEUE_PREFIX = "gedis_queue:"
 
 const STATUS_WAITING = "waiting"
@@ -11,10 +17,22 @@ const STATUS_FAILED = "failed"
 var _gedis: Gedis
 var _workers: Array[GedisWorker] = []
 
+## Sets up the GedisQueue with a Gedis instance.
+##
+## If no Gedis instance is provided, a new one will be created automatically
+## when needed.
+##
+## @param gedis_instance The Gedis instance to use.
 func setup(gedis_instance: Gedis = null):
 	if gedis_instance:
 		_gedis = gedis_instance
 
+## Adds a new job to a queue.
+##
+## @param queue_name The name of the queue to add the job to.
+## @param job_data A dictionary containing the data for the job.
+## @param opts A dictionary of options for the job (currently unused).
+## @return The newly created GedisJob.
 func add(queue_name: String, job_data: Dictionary, opts: Dictionary = {}) -> GedisJob:
 	_ensure_gedis_instance()
 
@@ -36,6 +54,11 @@ func add(queue_name: String, job_data: Dictionary, opts: Dictionary = {}) -> Ged
 
 	return job
 
+## Retrieves a job from a queue by its ID.
+##
+## @param queue_name The name of the queue.
+## @param job_id The ID of the job to retrieve.
+## @return The GedisJob if found, otherwise null.
 func get_job(queue_name: String, job_id: String) -> GedisJob:
 	var job_key = _get_job_key(queue_name, job_id)
 	var job_hash = _gedis.hgetall(job_key)
@@ -47,6 +70,14 @@ func get_job(queue_name: String, job_id: String) -> GedisJob:
 	var job = GedisJob.new(self, queue_name, job_hash["id"], job_data)
 	return job
 
+## Retrieves a list of jobs from a queue.
+##
+## @param queue_name The name of the queue.
+## @param types An array of job statuses to retrieve (e.g., ["waiting", "active"]).
+## @param start The starting index.
+## @param end The ending index.
+## @param asc Whether to sort in ascending order (currently unused).
+## @return An array of GedisJob objects.
 func get_jobs(queue_name: String, types: Array, start: int = 0, end: int = -1, asc: bool = false) -> Array[GedisJob]:
 	var jobs: Array[GedisJob] = []
 	for type in types:
@@ -58,30 +89,51 @@ func get_jobs(queue_name: String, types: Array, start: int = 0, end: int = -1, a
 				jobs.append(job)
 	return jobs
 
+## Pauses a queue.
+##
+## When a queue is paused, workers will not process any new jobs from it.
+##
+## @param queue_name The name of the queue to pause.
 func pause(queue_name: String) -> void:
 	_ensure_gedis_instance()
 
 	var state_key = _get_state_key(queue_name)
 	_gedis.hset(state_key, "paused", "1")
 
+## Resumes a paused queue.
+##
+## @param queue_name The name of the queue to resume.
 func resume(queue_name: String) -> void:
 	_ensure_gedis_instance()
 
 	var state_key = _get_state_key(queue_name)
 	_gedis.hdel(state_key, "paused")
 
+## Checks if a queue is paused.
+##
+## @param queue_name The name of the queue.
+## @return True if the queue is paused, otherwise false.
 func is_paused(queue_name: String) -> bool:
 	_ensure_gedis_instance()
 
 	var state_key = _get_state_key(queue_name)
 	return _gedis.hexists(state_key, "paused")
 
+## Updates the progress of a job.
+##
+## @param queue_name The name of the queue.
+## @param job_id The ID of the job.
+## @param value The new progress value (0.0 to 1.0).
 func update_job_progress(queue_name: String, job_id: String, value: float):
 	_ensure_gedis_instance()
 
 	var job_key = _get_job_key(queue_name, job_id)
 	_gedis.hset(job_key, "progress", value)
 
+## Removes a job from a queue.
+##
+## @param queue_name The name of the queue.
+## @param job_id The ID of the job to remove.
 func remove_job(queue_name: String, job_id: String):
 	_ensure_gedis_instance()
 
@@ -111,6 +163,11 @@ func _ensure_gedis_instance():
 	if !_gedis:
 		setup()
 
+## Starts a worker to process jobs from a queue.
+##
+## @param queue_name The name of the queue to process.
+## @param processor A callable that will be executed for each job.
+## @return The newly created GedisWorker.
 func process(queue_name: String, processor: Callable) -> GedisWorker:
 	var worker = GedisWorker.new(self, queue_name, processor)
 	add_child(worker)
@@ -118,6 +175,9 @@ func process(queue_name: String, processor: Callable) -> GedisWorker:
 	await worker.start()
 	return worker
 
+## Closes all workers for a specific queue.
+##
+## @param queue_name The name of the queue.
 func close(queue_name: String) -> void:
 	var workers_to_remove: Array[GedisWorker] = []
 	for worker in _workers:
@@ -135,6 +195,10 @@ func _enter_tree() -> void:
 		_gedis.name = "GedisQueue"
 		add_child(_gedis)
 
+## Marks a job as completed.
+##
+## @param job The job to mark as completed.
+## @param return_value The return value of the job.
 func _mark_job_completed(job: GedisJob, return_value):
 	_ensure_gedis_instance()
 	var job_key = _get_job_key(job.queue_name, job.id)
@@ -144,6 +208,10 @@ func _mark_job_completed(job: GedisJob, return_value):
 	_gedis.lpush(_get_queue_key(job.queue_name, STATUS_COMPLETED), job.id)
 
 
+## Marks a job as failed.
+##
+## @param job The job to mark as failed.
+## @param error_message The error message.
 func _mark_job_failed(job: GedisJob, error_message: String):
 	_ensure_gedis_instance()
 	var job_key = _get_job_key(job.queue_name, job.id)

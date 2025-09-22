@@ -12,6 +12,6 @@ This addon is implemented in GDScript and does not require native compilation. T
 
 3.  **Contribute**:
 
-- addons/GedisQueue/gedis_queue.gd should contain high level methods but little logic.
+- addons/GedisQueue/GedisQueue.gd should contain high level methods but little logic.
 - Any logic should live in the other appropriate gdscript files
 - Ensure new functionality has tests added and that the documentation is updated.

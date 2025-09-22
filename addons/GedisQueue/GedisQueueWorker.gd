@@ -2,6 +2,12 @@ extends Node
 
 class_name GedisWorker
 
+## Processes jobs from a GedisQueue.
+##
+## A worker is responsible for fetching jobs from a specific queue and executing
+## a processor function for each job. It runs in a loop and can be started and
+## stopped.
+
 signal completed(job: GedisJob, return_value)
 signal failed(job: GedisJob, error_message: String)
 signal progress(job: GedisJob, value: float)
@@ -18,10 +24,12 @@ func _init(p_gedis_queue: GedisQueue, p_queue_name: String, p_processor: Callabl
 	_queue_name = p_queue_name
 	_processor = p_processor
 
+## Starts the worker.
 func start():
 	_is_running = true
 	_process_jobs()
 
+## Stops the worker.
 func close():
 	_is_running = false
 
