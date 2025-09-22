@@ -1,6 +1,31 @@
 # GedisQueue
 
-GedisQueue is a powerful and flexible job queue system for Godot, built on top of Gedis. It allows you to manage and process asynchronous jobs in your Godot projects, making it ideal for handling tasks like background processing, notifications, and more.
+<p align="center">
+    <img width="512" height="512" alt="image" src="https://github.com/NodotProject/GedisQueue/blob/main/addons/GedisQueue/icon.png?raw=true" />
+</p>
+
+<p align="center">
+    A powerful and flexible job queue system for Godot, built on top of Gedis.
+</p>
+
+<p align="center">
+    <a href="https://nodotproject.github.io/GedisQueue/"><img src="https://img.shields.io/badge/documentation-blue?style=for-the-badge&logo=readthedocs&logoColor=white" alt="Documentation"></a>
+</p>
+
+[![Discord](https://img.shields.io/discord/1089846386566111322)](https://discord.gg/Rx9CZX4sjG) [![Mastodon](https://img.shields.io/mastodon/follow/110106863700290562?domain=mastodon.gamedev.place)](https://mastodon.gamedev.place/@krazyjakee) [![Youtube](https://img.shields.io/youtube/channel/subscribers/UColWkNMgHseKyU7D1QGeoyQ)](https://www.youtube.com/@GodotNodot) [![GitHub Sponsors](https://img.shields.io/github/sponsors/krazyjakee)](https://github.com/sponsors/krazyjakee) [![GitHub Stars](https://img.shields.io/github/stars/NodotProject/GedisQueue)](https://github.com/NodotProject/GedisQueue)
+
+![Stats](https://repobeats.axiom.co/api/embed/2a34f9ee10e86a04db97091d90c892c07c8314d1.svg "Repobeats analytics image")
+
+GedisQueue allows you to manage and process asynchronous jobs in your Godot projects, making it ideal for handling tasks like background processing, notifications, and more.
+
+## Table of Contents
+
+- [Features](#features)
+- [Installation](#installation)
+- [Usage](#usage)
+- [Contributing](#contributing)
+- [Support Me](#-support-me)
+- [License](#license)
 
 ## Features
 
@@ -12,7 +37,7 @@ GedisQueue is a powerful and flexible job queue system for Godot, built on top o
 
 ## Installation
 
-To use GedisQueue, you need to have the Gedis addon installed and enabled in your Godot project. You can download Gedis from the Godot Asset Library or from its [GitHub repository](https://github.com/Jummit/Gedis).
+To use GedisQueue, you need to have the Gedis addon installed and enabled in your Godot project. You can download Gedis from the Godot Asset Library or from its [GitHub repository](https://github.com/NodotProject/Gedis).
 
 Once Gedis is set up, install the GedisQueue addon by copying the contents of the `addons/GedisQueue` directory into your project's `addons` folder. Then, enable the "GedisQueue" plugin in your Project Settings.
 
@@ -116,7 +141,39 @@ queue.process("save_game", processor)
 
 ## Contributing
 
-Contributions are welcome! If you find a bug or have a feature request, please open an issue on the [GitHub repository](https://github.com/Jummit/GedisQueue).
+This addon is implemented in GDScript and does not require native compilation. To work on or test the addon, follow these steps:
+
+1.  **Clone the repository**:
+
+    ```sh
+    git clone --recursive https://github.com/NodotProject/GedisQueue.git
+    cd GedisQueue
+    ```
+
+2.  **Develop & Test**:
+
+    - The addon code lives under `addons/GedisQueue`. Copy that folder into your Godot project's `addons` directory to test changes.
+    - Run the project's test suite with `./run_tests.sh`.
+
+3.  **Contribute**:
+
+    Create a branch, make your changes, and open a pull request describing the work.
+
+## 💖 Support Me
+Hi! I’m krazyjakee 🎮, creator and maintain­er of the *NodotProject* - a suite of open‑source Godot tools (e.g. Nodot, Gedis etc) that empower game developers to build faster and maintain cleaner code.
+
+I’m looking for sponsors to help sustain and grow the project: more dev time, better docs, more features, and deeper community support. Your support means more stable, polished tools used by indie makers and studios alike.
+
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/krazyjakee)
+
+Every contribution helps maintain and improve this project. And encourage me to make more projects like this!
+
+*This is optional support. The tool remains free and open-source regardless.*
+
+---
+
+**Created with ❤️ for Godot Developers**
+For contributions, please open issues on GitHub
 
 ## License
 

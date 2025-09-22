@@ -6,3 +6,4 @@
 /addons    !export-ignore
 /addons/** !export-ignore
 /addons/gut/ export-ignore
+/addons/Gedis/ export-ignore

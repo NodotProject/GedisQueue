@@ -12,7 +12,9 @@ config_version=5
 
 config/name="GedisQueue"
 config/description="A BullMQ-like queue system for Godot, backed by Gedis."
+config/version="0.1.8"
 config/features=PackedStringArray("4.5")
+config/icon="uid://48jxifffcg1y"
 
 [editor_plugins]
 
