@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-    A powerful and flexible job queue system for Godot, built on top of Gedis.
+    A powerful and flexible job queue system for Godot, built on top of <a href="https://github.com/NodotProject/Gedis">Gedis</a>.
 </p>
 
 <p align="center">
@@ -32,6 +32,49 @@ GedisQueue allows you to manage and process asynchronous jobs in your Godot proj
 - **Job Lifecycle Management**: Track jobs through various statuses, including `waiting`, `active`, `completed`, and `failed`.
 - **Flexible Job Processors**: Define custom logic for processing jobs using simple functions.
 - **Tooling**: Gedis debugger tool can be used to assist development.
+- **Configurable Job Retention**: Control how many completed and failed jobs are stored.
+- **Signals**: Emit signals on job completion and failure.
+- **Pub/Sub Events**: Subscribe to job lifecycle events.
+
+## Pub/Sub Events
+
+GedisQueue uses Gedis's pub/sub functionality to broadcast events about the job lifecycle. You can subscribe to these events to monitor your queues in real-time.
+
+The following events are published:
+
+- `added`: When a new job is added to the queue.
+- `active`: When a job is being processed.
+- `progress`: When a job's progress is updated.
+- `completed`: When a job has been completed successfully.
+- `failed`: When a job has failed.
+
+To subscribe to events, you can use the `subscribe` method on your Gedis instance:
+
+```gdscript
+var gedis = Gedis.new()
+var queue = GedisQueue.new()
+queue.setup(gedis)
+
+func _ready():
+    gedis.subscribe("gedis_queue:my_queue:events:completed", self)
+    gedis.pubsub_message.connect(_on_job_completed)
+
+func _on_job_completed(channel, message):
+    print("Job completed: ", message)
+```
+
+## Configuration
+
+You can configure GedisQueue to control job retention and other settings.
+
+- `max_completed_jobs`: The maximum number of completed jobs to keep. Set to `0` to delete jobs immediately after completion, or `-1` to keep all completed jobs.
+- `max_failed_jobs`: The maximum number of failed jobs to keep. Set to `0` to delete jobs immediately after failure, or `-1` to keep all failed jobs.
+
+```gdscript
+var queue = GedisQueue.new()
+queue.max_completed_jobs = 100 # Keep the last 100 completed jobs
+queue.max_failed_jobs = 50    # Keep the last 50 failed jobs
+```
 
 ## Installation
 

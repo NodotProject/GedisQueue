@@ -20,7 +20,7 @@ var _gedis: Gedis
 
 func _init(p_gedis_queue: GedisQueue, p_queue_name: String, p_processor: Callable):
 	_gedis_queue = p_gedis_queue
-	_gedis = p_gedis_queue._gedis
+	_gedis = _gedis_queue._gedis
 	_queue_name = p_queue_name
 	_processor = p_processor
 
@@ -34,6 +34,7 @@ func close():
 	_is_running = false
 
 func _process_jobs():
+	await get_tree().process_frame
 	while _is_running:
 		if _gedis_queue.is_paused(_queue_name):
 			await get_tree().create_timer(1.0).timeout
@@ -41,17 +42,28 @@ func _process_jobs():
 
 		var job_id = _gedis.lpop(_gedis_queue._get_queue_key(_queue_name, GedisQueue.STATUS_WAITING))
 		if not job_id:
-			await get_tree().create_timer(1.0).timeout
+			if Engine.is_editor_hint():
+				await get_tree().process_frame
+			else:
+				if get_tree():
+					await get_tree().create_timer(1.0).timeout
 			continue
 
+		_gedis.lpush(_gedis_queue._get_queue_key(_queue_name, GedisQueue.STATUS_ACTIVE), job_id)
 		var job = _gedis_queue.get_job(_queue_name, job_id)
 		if not job:
 			continue
 
-		var result = _processor.call(job)
-		if result is Object and result.has_method("is_valid"): # A way to check for awaitable signals
-			result = await result
+		_gedis_queue._gedis.publish(_gedis_queue._get_event_channel(_queue_name, "active"), {"job_id": job.id})
 
-		# Simplified error handling. A robust implementation would require more checks.
-		_gedis_queue._mark_job_completed(job, result)
-		completed.emit(job, result)
+		var result = _processor.call(job)
+
+		if result is int and result != OK:
+			var error_message = "Job failed with error code: %s" % result
+			_gedis_queue._mark_job_failed(job, error_message)
+			failed.emit(job, error_message)
+		else:
+			if result is Object and result.has_method("is_valid"): # A way to check for awaitable signals
+				result = await result
+			_gedis_queue._mark_job_completed(job, result)
+			completed.emit(job, result)

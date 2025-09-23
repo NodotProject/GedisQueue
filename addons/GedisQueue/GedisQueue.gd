@@ -7,7 +7,13 @@ class_name GedisQueue
 ## that are processed by workers. It uses Gedis (a Godot Redis-like in-memory
 ## data structure server) for storing job information and queue state.
 
+signal job_completed(job: GedisJob, return_value)
+signal job_failed(job: GedisJob, error_message: String)
+
 const QUEUE_PREFIX = "gedis_queue:"
+
+var max_completed_jobs := 0
+var max_failed_jobs := 0
 
 const STATUS_WAITING = "waiting"
 const STATUS_ACTIVE = "active"
@@ -26,6 +32,10 @@ var _workers: Array[GedisWorker] = []
 func setup(gedis_instance: Gedis = null):
 	if gedis_instance:
 		_gedis = gedis_instance
+	else:
+		_gedis = Gedis.new()
+		_gedis.name = "Gedis"
+		add_child(_gedis)
 
 ## Adds a new job to a queue.
 ##
@@ -51,6 +61,8 @@ func add(queue_name: String, job_data: Dictionary, opts: Dictionary = {}) -> Ged
 		_gedis.hset(job_key, key, job_hash[key])
 	
 	_gedis.rpush(_get_queue_key(queue_name, STATUS_WAITING), job_id)
+
+	_gedis.publish(_get_event_channel(queue_name, "added"), {"job_id": job_id, "data": job_data})
 
 	return job
 
@@ -129,6 +141,7 @@ func update_job_progress(queue_name: String, job_id: String, value: float):
 
 	var job_key = _get_job_key(queue_name, job_id)
 	_gedis.hset(job_key, "progress", value)
+	_gedis.publish(_get_event_channel(queue_name, "progress"), {"job_id": job_id, "progress": value})
 
 ## Removes a job from a queue.
 ##
@@ -154,14 +167,20 @@ func _get_job_key(queue_name: String, job_id: String) -> String:
 func _get_state_key(queue_name: String) -> String:
 	return QUEUE_PREFIX + queue_name + ":state"
 
+func _get_event_channel(queue_name: String, event: String) -> String:
+	return "%s%s:events:%s" % [QUEUE_PREFIX, queue_name, event]
+
 func _generate_job_id() -> String:
 	var t = Time.get_unix_time_from_system()
 	var r = randi() % 1000
 	return "%s-%s" % [t, r]
 
 func _ensure_gedis_instance():
-	if !_gedis:
-		setup()
+	if not _gedis:
+		var gedis_instance = Gedis.new()
+		gedis_instance.name = "Gedis"
+		add_child(gedis_instance)
+		setup(gedis_instance)
 
 ## Starts a worker to process jobs from a queue.
 ##
@@ -191,9 +210,14 @@ func close(queue_name: String) -> void:
 
 func _enter_tree() -> void:
 	if !_gedis:
-		_gedis = Gedis.new()
-		_gedis.name = "GedisQueue"
-		add_child(_gedis)
+		var gedis_instance = Gedis.new()
+		gedis_instance.name = "Gedis"
+		add_child(gedis_instance)
+		_gedis = gedis_instance
+
+func _exit_tree():
+	for worker in _workers:
+		worker.close()
 
 ## Marks a job as completed.
 ##
@@ -203,9 +227,18 @@ func _mark_job_completed(job: GedisJob, return_value):
 	_ensure_gedis_instance()
 	var job_key = _get_job_key(job.queue_name, job.id)
 	_gedis.lrem(_get_queue_key(job.queue_name, STATUS_ACTIVE), 1, job.id)
-	_gedis.hset(job_key, "status", STATUS_COMPLETED)
-	_gedis.hset(job_key, "returnvalue", JSON.stringify(return_value))
-	_gedis.lpush(_get_queue_key(job.queue_name, STATUS_COMPLETED), job.id)
+
+	job_completed.emit(job, return_value)
+	_gedis.publish(_get_event_channel(job.queue_name, "completed"), {"job_id": job.id, "return_value": return_value})
+
+	if max_completed_jobs == 0:
+		_gedis.del(job_key)
+	else:
+		_gedis.hset(job_key, "status", STATUS_COMPLETED)
+		_gedis.hset(job_key, "returnvalue", JSON.stringify(return_value))
+		_gedis.lpush(_get_queue_key(job.queue_name, STATUS_COMPLETED), job.id)
+		if max_completed_jobs > 0:
+			_gedis.ltrim(_get_queue_key(job.queue_name, STATUS_COMPLETED), 0, max_completed_jobs - 1)
 
 
 ## Marks a job as failed.
@@ -216,6 +249,15 @@ func _mark_job_failed(job: GedisJob, error_message: String):
 	_ensure_gedis_instance()
 	var job_key = _get_job_key(job.queue_name, job.id)
 	_gedis.lrem(_get_queue_key(job.queue_name, STATUS_ACTIVE), 1, job.id)
-	_gedis.hset(job_key, "status", STATUS_FAILED)
-	_gedis.hset(job_key, "failed_reason", error_message)
-	_gedis.lpush(_get_queue_key(job.queue_name, STATUS_FAILED), job.id)
+
+	job_failed.emit(job, error_message)
+	_gedis.publish(_get_event_channel(job.queue_name, "failed"), {"job_id": job.id, "error_message": error_message})
+
+	if max_failed_jobs == 0:
+		_gedis.del(job_key)
+	else:
+		_gedis.hset(job_key, "status", STATUS_FAILED)
+		_gedis.hset(job_key, "failed_reason", error_message)
+		_gedis.lpush(_get_queue_key(job.queue_name, STATUS_FAILED), job.id)
+		if max_failed_jobs > 0:
+			_gedis.ltrim(_get_queue_key(job.queue_name, STATUS_FAILED), 0, max_failed_jobs - 1)

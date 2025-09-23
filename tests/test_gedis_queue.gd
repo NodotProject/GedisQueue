@@ -16,3 +16,31 @@ func test_remove_job():
 
 	var job_from_gedis = _queue.get_job("test_remove", job.id)
 	assert_null(job_from_gedis, "Job should be null after removal.")
+
+func test_completed_job_retention():
+	_queue.max_completed_jobs = 2
+	var worker = await _queue.process("retention_queue", func(job): return "done")
+
+	_queue.add("retention_queue", {})
+	_queue.add("retention_queue", {})
+	_queue.add("retention_queue", {})
+
+	await worker.completed
+	await worker.completed
+	await worker.completed
+
+	var completed_jobs = _queue.get_jobs("retention_queue", [GedisQueue.STATUS_COMPLETED])
+	assert_eq(completed_jobs.size(), 2, "Should only keep 2 completed jobs.")
+
+func test_failed_job_retention():
+	_queue.max_failed_jobs = 1
+	var worker = await _queue.process("failed_retention", func(job): return FAILED)
+
+	_queue.add("failed_retention", {})
+	_queue.add("failed_retention", {})
+
+	await worker.failed
+	await worker.failed
+
+	var failed_jobs = _queue.get_jobs("failed_retention", [GedisQueue.STATUS_FAILED])
+	assert_eq(failed_jobs.size(), 1, "Should only keep 1 failed job.")
