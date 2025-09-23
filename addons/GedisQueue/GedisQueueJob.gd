@@ -31,3 +31,21 @@ func progress(value: float) -> void:
 ## Removes the job from the queue.
 func remove() -> void:
 	_gedis_queue.remove_job(queue_name, id)
+
+## Marks the job as completed.
+##
+## This should be called by a worker's processor function when the job has
+## been successfully processed.
+##
+## @param return_value An optional value to store as the result of the job.
+func complete(return_value: Variant = null) -> void:
+	_gedis_queue._job_completed(self, return_value)
+
+## Marks the job as failed.
+##
+## This should be called by a worker's processor function when the job has
+## failed to be processed.
+##
+## @param error_message The error message to store for the failed job.
+func fail(error_message: String) -> void:
+	_gedis_queue._job_failed(self, error_message)

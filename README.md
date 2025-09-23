@@ -51,16 +51,22 @@ The following events are published:
 To subscribe to events, you can use the `subscribe` method on your Gedis instance:
 
 ```gdscript
+signal psub_message(pattern, channel, message)
+
 var gedis = Gedis.new()
 var queue = GedisQueue.new()
-queue.setup(gedis)
 
 func _ready():
-    gedis.subscribe("gedis_queue:my_queue:events:completed", self)
-    gedis.pubsub_message.connect(_on_job_completed)
+    add_child(gedis)
 
-func _on_job_completed(channel, message):
-    print("Job completed: ", message)
+    queue.setup(gedis)
+    add_child(queue)
+
+    gedis.psubscribe("gedis_queue:my_queue:events:*", self)
+    pubsub_message.connect(_on_job_completed)
+
+func _on_job_completed(pattern, channel, message):
+    prints(pattern, channel, message)
 ```
 
 ## Configuration
@@ -126,12 +132,12 @@ var processor = func(job):
     for i in range(reward_data.items.size()):
         player.inventory.add_item(reward_data.items[i], reward_data.quantity[i])
         
-    return "Reward granted successfully"
+    job.complete("Reward granted successfully")
 
 var worker = queue.process("player_rewards", processor)
 ```
 
-The processor function receives the job as an argument and can return a result that will be stored in the completed job.
+The processor function receives the job as an argument and is responsible for calling `job.complete()` or `job.fail()` to finish the job.
 
 ### Job Lifecycle
 
@@ -147,6 +153,34 @@ for job in completed_jobs:
 var failed_jobs = queue.get_jobs("player_rewards", [GedisQueue.STATUS_FAILED])
 for job in failed_jobs:
     print("Job %s failed with error: %s" % [job.id, job.failed_reason])
+```
+
+## Breaking Changes & Migration Guide
+
+With the latest update, the way job completion is handled has been refactored for greater flexibility. Previously, the processor function would return a value to signal completion. Now, you must explicitly call `job.complete()` or `job.fail()` within your processor.
+
+This change allows for more complex scenarios, such as asynchronous operations, where the job might not be completed within the initial function call.
+
+### Before
+
+```gdscript
+var processor = func(job):
+    # ... some logic ...
+    if success:
+        return "Job completed successfully"
+    else:
+        return "Job failed" # This was not ideal for handling failures
+```
+
+### After
+
+```gdscript
+var processor = func(job):
+    # ... some logic ...
+    if success:
+        job.complete("Job completed successfully")
+    else:
+        job.fail("Something went wrong")
 ```
 
 ## Contributing

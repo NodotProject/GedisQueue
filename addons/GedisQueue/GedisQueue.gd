@@ -7,8 +7,12 @@ class_name GedisQueue
 ## that are processed by workers. It uses Gedis (a Godot Redis-like in-memory
 ## data structure server) for storing job information and queue state.
 
-signal job_completed(job: GedisJob, return_value)
-signal job_failed(job: GedisJob, error_message: String)
+## Emitted when a job is completed successfully.
+signal completed(job: GedisJob, return_value)
+## Emitted when a job fails.
+signal failed(job: GedisJob, error_message: String)
+## Emitted when a job's progress is updated.
+signal progress(job: GedisJob, value: float)
 
 const QUEUE_PREFIX = "gedis_queue:"
 
@@ -142,6 +146,7 @@ func update_job_progress(queue_name: String, job_id: String, value: float):
 	var job_key = _get_job_key(queue_name, job_id)
 	_gedis.hset(job_key, "progress", value)
 	_gedis.publish(_get_event_channel(queue_name, "progress"), {"job_id": job_id, "progress": value})
+	progress.emit(get_job(queue_name, job_id), value)
 
 ## Removes a job from a queue.
 ##
@@ -191,7 +196,7 @@ func process(queue_name: String, processor: Callable) -> GedisWorker:
 	var worker = GedisWorker.new(self, queue_name, processor)
 	add_child(worker)
 	_workers.append(worker)
-	await worker.start()
+	worker.start()
 	return worker
 
 ## Closes all workers for a specific queue.
@@ -217,18 +222,19 @@ func _enter_tree() -> void:
 
 func _exit_tree():
 	for worker in _workers:
-		worker.close()
+		if is_instance_valid(worker):
+			worker.close()
 
 ## Marks a job as completed.
 ##
 ## @param job The job to mark as completed.
 ## @param return_value The return value of the job.
-func _mark_job_completed(job: GedisJob, return_value):
+func _job_completed(job: GedisJob, return_value):
 	_ensure_gedis_instance()
 	var job_key = _get_job_key(job.queue_name, job.id)
 	_gedis.lrem(_get_queue_key(job.queue_name, STATUS_ACTIVE), 1, job.id)
 
-	job_completed.emit(job, return_value)
+	completed.emit(job, return_value)
 	_gedis.publish(_get_event_channel(job.queue_name, "completed"), {"job_id": job.id, "return_value": return_value})
 
 	if max_completed_jobs == 0:
@@ -245,12 +251,12 @@ func _mark_job_completed(job: GedisJob, return_value):
 ##
 ## @param job The job to mark as failed.
 ## @param error_message The error message.
-func _mark_job_failed(job: GedisJob, error_message: String):
+func _job_failed(job: GedisJob, error_message: String):
 	_ensure_gedis_instance()
 	var job_key = _get_job_key(job.queue_name, job.id)
 	_gedis.lrem(_get_queue_key(job.queue_name, STATUS_ACTIVE), 1, job.id)
 
-	job_failed.emit(job, error_message)
+	failed.emit(job, error_message)
 	_gedis.publish(_get_event_channel(job.queue_name, "failed"), {"job_id": job.id, "error_message": error_message})
 
 	if max_failed_jobs == 0:

@@ -5,8 +5,11 @@ class_name GedisWorker
 ## Processes jobs from a GedisQueue.
 ##
 ## A worker is responsible for fetching jobs from a specific queue and executing
-## a processor function for each job. It runs in a loop and can be started and
-## stopped.
+## a processor function for each job.
+##
+## The processor function receives the job and is responsible for calling
+## `job.complete()` or `job.fail()` to finish the job. The worker itself does
+## not handle the return value of the processor.
 
 signal completed(job: GedisJob, return_value)
 signal failed(job: GedisJob, error_message: String)
@@ -23,6 +26,10 @@ func _init(p_gedis_queue: GedisQueue, p_queue_name: String, p_processor: Callabl
 	_gedis = _gedis_queue._gedis
 	_queue_name = p_queue_name
 	_processor = p_processor
+	
+	_gedis_queue.completed.connect(func(job: GedisJob, return_value): completed.emit(job, return_value))
+	_gedis_queue.failed.connect(func(job: GedisJob, error_message: String): failed.emit(job, error_message))
+	_gedis_queue.progress.connect(func(job: GedisJob, value: float): progress.emit(job, value))
 
 ## Starts the worker.
 func start():
@@ -46,7 +53,7 @@ func _process_jobs():
 				await get_tree().process_frame
 			else:
 				if get_tree():
-					await get_tree().create_timer(1.0).timeout
+					await get_tree().process_frame
 			continue
 
 		_gedis.lpush(_gedis_queue._get_queue_key(_queue_name, GedisQueue.STATUS_ACTIVE), job_id)
@@ -57,13 +64,8 @@ func _process_jobs():
 		_gedis_queue._gedis.publish(_gedis_queue._get_event_channel(_queue_name, "active"), {"job_id": job.id})
 
 		var result = _processor.call(job)
-
-		if result is int and result != OK:
-			var error_message = "Job failed with error code: %s" % result
-			_gedis_queue._mark_job_failed(job, error_message)
-			failed.emit(job, error_message)
-		else:
-			if result is Object and result.has_method("is_valid"): # A way to check for awaitable signals
-				result = await result
-			_gedis_queue._mark_job_completed(job, result)
-			completed.emit(job, result)
+		if result is Object and result.has_method("is_valid"):
+			result = await result
+		
+		if job.status == GedisQueue.STATUS_ACTIVE:
+			job.complete(result)

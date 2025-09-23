@@ -21,7 +21,7 @@ func after_each():
 
 func test_job_lifecycle():
 	var processor = func(job):
-		return "processed"
+		job.complete("processed")
 
 	var worker = await _queue.process("test_queue", processor)
 	var job = _queue.add("test_queue", {"data": "test"})
@@ -40,7 +40,7 @@ func test_pubsub_events():
 	_queue._gedis.psubscribe("gedis_queue:pubsub_test:events:*", self)
 	_queue._gedis.psub_message.connect(func(pattern, channel, message): events.append(message))
 
-	var worker = await _queue.process("pubsub_test", func(job): return "result")
+	var worker = await _queue.process("pubsub_test", func(job): job.complete("result"))
 	var job = _queue.add("pubsub_test", {"data": "test"})
 
 	for i in range(5): await get_tree().process_frame
