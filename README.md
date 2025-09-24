@@ -155,6 +155,17 @@ for job in failed_jobs:
     print("Job %s failed with error: %s" % [job.id, job.failed_reason])
 ```
 
+### Batch Processing
+
+GedisQueueWorker supports batch processing, allowing you to process multiple jobs concurrently. This can significantly improve performance when dealing with a large number of jobs.
+
+The `batch_size` public variable on the `GedisQueueWorker` controls how many jobs are processed at once. The default value is `1`, meaning jobs are processed one by one.
+
+```gdscript
+var worker = queue.process("player_rewards", processor)
+worker.batch_size = 10 # Process up to 10 jobs at a time
+```
+
 ## Breaking Changes & Migration Guide
 
 With the latest update, the way job completion is handled has been refactored for greater flexibility. Previously, the processor function would return a value to signal completion. Now, you must explicitly call `job.complete()` or `job.fail()` within your processor.

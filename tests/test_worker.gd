@@ -4,11 +4,10 @@ var _queue: GedisQueue
 var _worker: GedisWorker
 
 func before_each():
+	_queue = GedisQueue.new()
+	add_child(_queue)
 	var gedis_instance = Gedis.new()
 	gedis_instance.name = "Gedis"
-	add_child(_queue)
-
-	_queue = GedisQueue.new()
 	_queue.setup(gedis_instance)
 	add_child(gedis_instance)
 
@@ -26,6 +25,7 @@ func test_worker_processes_job_and_emits_completed():
 		job.complete(job.data.value * 2)
 
 	_worker = _queue.process("test_queue", processor)
+	add_child(_worker)
 
 	var received_events = []
 	_queue._gedis.psub_message.connect(func(_pattern, channel, message):
@@ -55,3 +55,27 @@ func test_worker_processes_job_and_emits_completed():
 	assert_eq(completed_event.event, "completed", "Last event should be 'completed'.")
 	assert_eq(completed_event.job_id, gedis_job.id, "Job ID should match.")
 	assert_eq(completed_event.return_value, 10, "Processor should have doubled the value.")
+
+
+func test_worker_waits_for_batch_to_complete():
+	var completed_jobs = []
+	var processor = func(job: GedisJob):
+		await get_tree().create_timer(0.1).timeout
+		completed_jobs.append(job.id)
+		job.complete()
+
+	_worker = _queue.process("test_queue", processor)
+	_worker.batch_size = 3
+	add_child(_worker)
+
+	var job1 = _queue.add("test_queue", {})
+	var job2 = _queue.add("test_queue", {})
+	var job3 = _queue.add("test_queue", {})
+
+	# Wait long enough for all jobs to be processed
+	await get_tree().create_timer(0.5).timeout
+
+	assert_eq(completed_jobs.size(), 3, "Should have completed 3 jobs.")
+	assert_has(completed_jobs, job1.id)
+	assert_has(completed_jobs, job2.id)
+	assert_has(completed_jobs, job3.id)

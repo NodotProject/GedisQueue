@@ -56,7 +56,7 @@ func add(queue_name: String, job_data: Dictionary, opts: Dictionary = {}) -> Ged
 
 	var job_hash = {
 		"id": job_id,
-		"data": JSON.stringify(job_data),
+		"data": job_data,
 		"status": STATUS_WAITING,
 		"progress": 0.0
 	}
@@ -82,7 +82,7 @@ func get_job(queue_name: String, job_id: String) -> GedisJob:
 	if job_hash.is_empty():
 		return null
 
-	var job_data = JSON.parse_string(job_hash.get("data", "{}"))
+	var job_data = job_hash.get("data")
 	var job = GedisJob.new(self, queue_name, job_hash["id"], job_data)
 	return job
 
@@ -192,8 +192,9 @@ func _ensure_gedis_instance():
 ## @param queue_name The name of the queue to process.
 ## @param processor A callable that will be executed for each job.
 ## @return The newly created GedisWorker.
-func process(queue_name: String, processor: Callable) -> GedisWorker:
+func process(queue_name: String, processor: Callable, p_batch_size: int = 1) -> GedisWorker:
 	var worker = GedisWorker.new(self, queue_name, processor)
+	worker.batch_size = p_batch_size
 	add_child(worker)
 	_workers.append(worker)
 	worker.start()
@@ -241,7 +242,7 @@ func _job_completed(job: GedisJob, return_value):
 		_gedis.del(job_key)
 	else:
 		_gedis.hset(job_key, "status", STATUS_COMPLETED)
-		_gedis.hset(job_key, "returnvalue", JSON.stringify(return_value))
+		_gedis.hset(job_key, "returnvalue", return_value)
 		_gedis.lpush(_get_queue_key(job.queue_name, STATUS_COMPLETED), job.id)
 		if max_completed_jobs > 0:
 			_gedis.ltrim(_get_queue_key(job.queue_name, STATUS_COMPLETED), 0, max_completed_jobs - 1)

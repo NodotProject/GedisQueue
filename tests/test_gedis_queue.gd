@@ -25,9 +25,8 @@ func test_completed_job_retention():
 	_queue.add("retention_queue", {})
 	_queue.add("retention_queue", {})
 
-	await worker.completed
-	await worker.completed
-	await worker.completed
+	for i in range(3):
+		await worker.completed
 
 	var completed_jobs = _queue.get_jobs("retention_queue", [GedisQueue.STATUS_COMPLETED])
 	assert_eq(completed_jobs.size(), 2, "Should only keep 2 completed jobs.")
@@ -39,8 +38,8 @@ func test_failed_job_retention():
 	_queue.add("failed_retention", {})
 	_queue.add("failed_retention", {})
 
-	await worker.failed
-	await worker.failed
+	for i in range(2):
+		await worker.failed
 
 	var failed_jobs = _queue.get_jobs("failed_retention", [GedisQueue.STATUS_FAILED])
 	assert_eq(failed_jobs.size(), 1, "Should only keep 1 failed job.")
@@ -82,3 +81,44 @@ func test_progress_event():
 	assert_not_null(progress_event, "Progress event not found")
 	assert_eq(progress_event.message.job_id, job.id)
 	assert_eq(progress_event.message.progress, 50.0)
+
+func test_process_jobs_in_batches():
+	var processed_jobs = []
+	var worker = await _queue.process("batch_queue", func(job):
+		processed_jobs.append(job.id)
+		job.complete()
+	, 3)
+
+	var jobs = []
+	for i in range(5):
+		jobs.append(_queue.add("batch_queue", {}))
+
+	for i in range(5):
+		await worker.completed
+
+	assert_eq(processed_jobs.size(), 5)
+
+func test_waits_for_batch_to_complete():
+	var processed_jobs = []
+	var worker = await _queue.process("batch_wait_queue", func(job):
+		processed_jobs.append(job.id)
+		if processed_jobs.size() == 1:
+			await get_tree().create_timer(0.2).timeout
+		job.complete()
+	, 2)
+
+	var job1 = _queue.add("batch_wait_queue", {})
+	var job2 = _queue.add("batch_wait_queue", {})
+	var job3 = _queue.add("batch_wait_queue", {})
+
+	await worker.completed
+	assert_eq(processed_jobs.size(), 1)
+	assert_eq(processed_jobs[0], job1.id)
+
+	await worker.completed
+	assert_eq(processed_jobs.size(), 2)
+	assert_has(processed_jobs, job2.id)
+
+	await worker.completed
+	assert_eq(processed_jobs.size(), 3)
+	assert_has(processed_jobs, job3.id)
