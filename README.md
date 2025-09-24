@@ -165,7 +165,6 @@ The `batch_size` public variable on the `GedisQueueWorker` controls how many job
 var worker = queue.process("player_rewards", processor)
 worker.batch_size = 10 # Process up to 10 jobs at a time
 ```
-```
 
 ## Contributing
 
