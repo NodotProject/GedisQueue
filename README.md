@@ -165,33 +165,6 @@ The `batch_size` public variable on the `GedisQueueWorker` controls how many job
 var worker = queue.process("player_rewards", processor)
 worker.batch_size = 10 # Process up to 10 jobs at a time
 ```
-
-## Breaking Changes & Migration Guide
-
-With the latest update, the way job completion is handled has been refactored for greater flexibility. Previously, the processor function would return a value to signal completion. Now, you must explicitly call `job.complete()` or `job.fail()` within your processor.
-
-This change allows for more complex scenarios, such as asynchronous operations, where the job might not be completed within the initial function call.
-
-### Before
-
-```gdscript
-var processor = func(job):
-    # ... some logic ...
-    if success:
-        return "Job completed successfully"
-    else:
-        return "Job failed" # This was not ideal for handling failures
-```
-
-### After
-
-```gdscript
-var processor = func(job):
-    # ... some logic ...
-    if success:
-        job.complete("Job completed successfully")
-    else:
-        job.fail("Something went wrong")
 ```
 
 ## Contributing
