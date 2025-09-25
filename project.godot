@@ -15,7 +15,8 @@ config/description="A BullMQ-like queue system for Godot, backed by Gedis."
 config/version="0.1.8"
 config/features=PackedStringArray("4.5")
 config/icon="uid://48jxifffcg1y"
+run/main_scene="res://game/game.tscn"
 
 [editor_plugins]
 
-enabled=PackedStringArray("res://addons/Gedis/plugin.cfg", "res://addons/gut/plugin.cfg")
+enabled=PackedStringArray("res://addons/GedisQueue/plugin.cfg", "res://addons/gut/plugin.cfg")

@@ -25,11 +25,12 @@ var _jobs_in_progress = {}
 
 var batch_size = 1
 
-func _init(p_gedis_queue: GedisQueue, p_queue_name: String, p_processor: Callable):
+func _init(p_gedis_queue: GedisQueue, p_queue_name: String, p_processor: Callable, p_batch_size: int = 1):
 	_gedis_queue = p_gedis_queue
 	_gedis = _gedis_queue._gedis
 	_queue_name = p_queue_name
 	_processor = p_processor
+	batch_size = p_batch_size
 	
 	_gedis_queue.completed.connect(_on_job_completed)
 	_gedis_queue.failed.connect(_on_job_failed)
@@ -91,12 +92,15 @@ func _process_jobs():
 			var job_key = _gedis_queue._get_job_key(_queue_name, job_id)
 			_gedis.hset(job_key, "status", GedisQueue.STATUS_ACTIVE)
 			_gedis_queue._gedis.publish(_gedis_queue._get_event_channel(_queue_name, "active"), {"job_id": job.id})
-			var result = await _processor.call(job)
-			if result is Object and result.has_method("is_valid"):
-				result = await result
-			
-			if job.status == GedisQueue.STATUS_ACTIVE:
-				job.complete(result)
+			_process_job(job)
 		
 		if not _jobs_in_progress.is_empty():
 			await _batch_completed
+
+func _process_job(job: GedisJob):
+	var result = await _processor.call(job)
+	if result is Object and result.has_method("is_valid"):
+		result = await result
+	
+	if job.status == GedisQueue.STATUS_ACTIVE:
+		job.complete(result)

@@ -86,9 +86,9 @@ func get_job(queue_name: String, job_id: String) -> GedisJob:
 	if job_hash.is_empty():
 		return null
 
-	var job_data = job_hash.get("data")
+	var job_data = job_hash.get("data", {})
 	var job_status = job_hash.get("status", GedisQueue.STATUS_WAITING)
-	var job = GedisJob.new(self, queue_name, job_hash["id"], job_data, job_status)
+	var job = GedisJob.new(self, queue_name, job_id, job_data, job_status)
 	return job
 
 ## Retrieves a list of jobs from a queue.
@@ -198,8 +198,7 @@ func _ensure_gedis_instance():
 ## @param processor A callable that will be executed for each job.
 ## @return The newly created GedisWorker.
 func process(queue_name: String, processor: Callable, p_batch_size: int = 1) -> GedisWorker:
-	var worker = GedisWorker.new(self, queue_name, processor)
-	worker.batch_size = p_batch_size
+	var worker = GedisWorker.new(self, queue_name, processor, p_batch_size)
 	add_child(worker)
 	_workers.append(worker)
 	worker.start()

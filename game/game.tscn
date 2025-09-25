@@ -1,0 +1,61 @@
+[gd_scene load_steps=2 format=3 uid="uid://b5w5a2w5j5j5"]
+
+[ext_resource type="Script" uid="uid://6kgolf7jeuvu" path="res://game/game.gd" id="1_1j1j1"]
+
+[node name="Game" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_1j1j1")
+
+[node name="JobsContainer" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = 403.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -50.0
+offset_top = -20.0
+offset_right = 50.0
+offset_bottom = 20.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="AddJobButton" type="Button" parent="VBoxContainer"]
+layout_mode = 2
+text = "Add Job"
+
+[node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer"]
+layout_mode = 2
+alignment = 1
+
+[node name="Label" type="Label" parent="VBoxContainer/HBoxContainer"]
+layout_mode = 2
+text = "Batch Size:"
+
+[node name="BatchSizeSpinBox" type="SpinBox" parent="VBoxContainer/HBoxContainer"]
+layout_mode = 2
+min_value = 1.0
+value = 1.0
+allow_greater = true
+
+[node name="ClearQueueButton" type="Button" parent="VBoxContainer"]
+layout_mode = 2
+text = "Clear Queue"
+
+[connection signal="pressed" from="VBoxContainer/AddJobButton" to="." method="_on_add_job_button_pressed"]
+[connection signal="value_changed" from="VBoxContainer/HBoxContainer/BatchSizeSpinBox" to="." method="_on_batch_size_spin_box_value_changed"]
+[connection signal="pressed" from="VBoxContainer/ClearQueueButton" to="." method="_on_clear_queue_button_pressed"]
