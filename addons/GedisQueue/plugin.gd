@@ -11,7 +11,6 @@ func _enter_tree():
 	
 	var timer = Timer.new()
 	timer.wait_time = 1
-	timer.one_shot = false # Check periodically
 	timer.timeout.connect(_on_timer_timeout)
 	add_child(timer)
 	timer.start()
@@ -20,15 +19,17 @@ func _on_timer_timeout():
 	var editor_node = EditorInterface.get_base_control()
 	var dashboard = editor_node.find_child("Gedis", true, false)
 	
-	if dashboard and not dashboard.find_child("Queue", true, false):
+	if dashboard:
 		var debugger = dashboard.plugin
 		if debugger:
 			var tab_container = dashboard.find_child("TabContainer", true, false)
 			if tab_container:
-				var queue_panel = GedisQueueDebuggerPanel.instantiate()
-				queue_panel.name = "Queue"
-				tab_container.add_child(queue_panel)
-				queue_panel.set_plugin(debugger)
+				var queue_panel = dashboard.find_child("Queue", true, false)
+				if !queue_panel:
+					queue_panel = GedisQueueDebuggerPanel.instantiate()
+					queue_panel.name = "Queue"
+					tab_container.add_child(queue_panel)
+					queue_panel.set_plugin(debugger)
 				
 				var session_id = debugger.get_current_session_id()
 				if session_id != -1:
@@ -47,7 +48,7 @@ class GedisQueueDebuggerPlugin extends EditorDebuggerPlugin:
 		queue_panels[session_id] = panel
 
 	func _has_capture(capture):
-		return capture == "gedis_queue"
+		return capture == "gedis"
 
 	func _capture(message, data, session_id):
 		var parts = message.split(":")
@@ -56,12 +57,23 @@ class GedisQueueDebuggerPlugin extends EditorDebuggerPlugin:
 		if session_id in queue_panels:
 			var queue_panel = queue_panels[session_id]
 			match kind:
-				"queue_data":
+				"snapshot_data":
 					if queue_panel:
-						queue_panel.update_queues(data[0])
-					return true
-				"job_data":
-					if queue_panel:
-						queue_panel.update_jobs(data[0])
+						var snapshot = data[0]
+						var queues = {}
+						var jobs = []
+						
+						for key in snapshot:
+							var value = snapshot[key]
+							if "job" in key:
+								jobs.append(value["value"])
+							else:
+								var queue_name = key.replace("gedis_queue:", "").replace(":waiting", "").replace(":active", "")
+								if not queue_name in queues:
+									queues[queue_name] = []
+								queues[queue_name].append_array(value["value"])
+						
+						queue_panel.update_queues(queues)
+						queue_panel.update_jobs(jobs)
 					return true
 		return false

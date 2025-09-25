@@ -24,7 +24,7 @@ func _on_refresh_pressed() -> void:
 		if session_id != -1:
 			var session = plugin.get_session(session_id)
 			if session and session.is_active():
-				session.send_message("gedis_queue:request_instance_data", [selected_id, "queues"])
+				session.send_message("gedis:request_instance_data", [selected_id])
 
 func update_queues(data: Dictionary) -> void:
 	queues_tree.clear()
