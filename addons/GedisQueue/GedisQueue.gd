@@ -45,7 +45,8 @@ func setup(gedis_instance: Gedis = null):
 ##
 ## @param queue_name The name of the queue to add the job to.
 ## @param job_data A dictionary containing the data for the job.
-## @param opts A dictionary of options for the job (currently unused).
+## @param opts A dictionary of options for the job.
+##             "add_to_front": (bool) If true, adds the job to the front of the queue.
 ## @return The newly created GedisJob.
 func add(queue_name: String, job_data: Dictionary, opts: Dictionary = {}) -> GedisJob:
 	_ensure_gedis_instance()
@@ -64,7 +65,10 @@ func add(queue_name: String, job_data: Dictionary, opts: Dictionary = {}) -> Ged
 	for key in job_hash:
 		_gedis.hset(job_key, key, job_hash[key])
 	
-	_gedis.rpush(_get_queue_key(queue_name, STATUS_WAITING), job_id)
+	if opts.get("add_to_front", false):
+		_gedis.lpush(_get_queue_key(queue_name, STATUS_WAITING), job_id)
+	else:
+		_gedis.rpush(_get_queue_key(queue_name, STATUS_WAITING), job_id)
 
 	_gedis.publish(_get_event_channel(queue_name, "added"), {"job_id": job_id, "data": job_data})
 
@@ -83,7 +87,8 @@ func get_job(queue_name: String, job_id: String) -> GedisJob:
 		return null
 
 	var job_data = job_hash.get("data")
-	var job = GedisJob.new(self, queue_name, job_hash["id"], job_data)
+	var job_status = job_hash.get("status", GedisQueue.STATUS_WAITING)
+	var job = GedisJob.new(self, queue_name, job_hash["id"], job_data, job_status)
 	return job
 
 ## Retrieves a list of jobs from a queue.

@@ -88,6 +88,8 @@ func _process_jobs():
 				continue
 			
 			_jobs_in_progress[job_id] = job
+			var job_key = _gedis_queue._get_job_key(_queue_name, job_id)
+			_gedis.hset(job_key, "status", GedisQueue.STATUS_ACTIVE)
 			_gedis_queue._gedis.publish(_gedis_queue._get_event_channel(_queue_name, "active"), {"job_id": job.id})
 			var result = await _processor.call(job)
 			if result is Object and result.has_method("is_valid"):
