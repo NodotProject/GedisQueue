@@ -13,6 +13,17 @@ func _ready() -> void:
 	if refresh_button:
 		refresh_button.pressed.connect(_on_refresh_pressed)
 
+	# Set column titles for the queues tree
+	queues_tree.set_column_titles_visible(true)
+	queues_tree.set_column_title(0, "Queue")
+	queues_tree.set_column_title(1, "Jobs")
+
+	# Set column titles for the jobs tree
+	jobs_tree.set_column_titles_visible(true)
+	jobs_tree.set_column_title(0, "ID")
+	jobs_tree.set_column_title(1, "Queue")
+	jobs_tree.set_column_title(2, "Status")
+
 func set_plugin(p) -> void:
 	plugin = p
 
@@ -22,9 +33,7 @@ func _on_refresh_pressed() -> void:
 		var selected_id = get_parent().get_parent().instance_selector.get_item_id(get_parent().get_parent().instance_selector.selected)
 		var session_id = plugin.get_current_session_id()
 		if session_id != -1:
-			var session = plugin.get_session(session_id)
-			if session and session.is_active():
-				session.send_message("gedis:request_instance_data", [selected_id])
+			plugin._fetch_keys_for_selected_instance(session_id)
 
 func update_queues(data: Dictionary) -> void:
 	queues_tree.clear()
@@ -44,11 +53,15 @@ func update_jobs(jobs: Array) -> void:
 	for job in jobs:
 		var job_item = jobs_tree.create_item(root)
 		job_item.set_text(0, job.id)
-		job_item.set_text(1, job.type)
+		job_item.set_text(1, job.queue_name)
 		job_item.set_text(2, job.status)
-		job_item.set_meta("details", job.details)
+		job_item.set_meta("data", job.data)
 
 func _on_jobs_tree_item_selected() -> void:
 	var selected_item = jobs_tree.get_selected()
 	if selected_item:
-		job_details_text.text = selected_item.get_meta("details")
+		job_details_text.text = selected_item.get_meta("data")
+
+func _on_queues_tree_item_selected() -> void:
+	# TODO: should filter out jobs not the selected queue
+	pass

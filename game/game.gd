@@ -34,6 +34,10 @@ func _on_add_job_button_pressed():
 	jobs_container.add_child(progress_bar)
 	job_nodes[job.id] = progress_bar
 
+func _on_add_100_job_button_pressed() -> void:
+	for i in range(100):
+		_on_add_job_button_pressed()
+	
 func _on_job_completed(job: GedisJob, return_value):
 	if job_nodes.has(job.id):
 		var progress_bar = job_nodes[job.id]

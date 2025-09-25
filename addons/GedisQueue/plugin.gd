@@ -4,6 +4,8 @@ extends EditorPlugin
 const GedisQueueDebuggerPanel = preload("res://addons/GedisQueue/debugger/gedis_queue_debugger_panel.tscn")
 
 var queue_debugger_plugin
+var queue_panel
+var dashboard
 
 func _enter_tree():
 	queue_debugger_plugin = GedisQueueDebuggerPlugin.new()
@@ -17,14 +19,14 @@ func _enter_tree():
 
 func _on_timer_timeout():
 	var editor_node = EditorInterface.get_base_control()
-	var dashboard = editor_node.find_child("Gedis", true, false)
+	dashboard = editor_node.find_child("Gedis", true, false)
 	
 	if dashboard:
 		var debugger = dashboard.plugin
 		if debugger:
 			var tab_container = dashboard.find_child("TabContainer", true, false)
 			if tab_container:
-				var queue_panel = dashboard.find_child("Queue", true, false)
+				queue_panel = dashboard.find_child("Queue", true, false)
 				if !queue_panel:
 					queue_panel = GedisQueueDebuggerPanel.instantiate()
 					queue_panel.name = "Queue"
@@ -40,6 +42,8 @@ func _exit_tree():
 	if queue_debugger_plugin:
 		remove_debugger_plugin(queue_debugger_plugin)
 		queue_debugger_plugin = null
+	if queue_panel:
+		queue_panel.queue_free()
 
 class GedisQueueDebuggerPlugin extends EditorDebuggerPlugin:
 	var queue_panels = {}
@@ -66,7 +70,11 @@ class GedisQueueDebuggerPlugin extends EditorDebuggerPlugin:
 						for key in snapshot:
 							var value = snapshot[key]
 							if "job" in key:
-								jobs.append(value["value"])
+								var job_data = value["value"]
+								var key_parts = key.split(":")
+								if key_parts.size() > 2:
+									job_data["queue_name"] = key_parts[1]
+								jobs.append(job_data)
 							else:
 								var queue_name = key.replace("gedis_queue:", "").replace(":waiting", "").replace(":active", "")
 								if not queue_name in queues:

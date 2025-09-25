@@ -26,6 +26,7 @@ size_flags_horizontal = 3
 size_flags_stretch_ratio = 0.3
 columns = 2
 column_titles_visible = true
+select_mode = 1
 
 [node name="JobsVBox" type="VBoxContainer" parent="HSplitContainer"]
 layout_mode = 2
@@ -36,8 +37,12 @@ layout_mode = 2
 size_flags_vertical = 3
 columns = 3
 column_titles_visible = true
+select_mode = 1
 
 [node name="JobDetailsText" type="TextEdit" parent="HSplitContainer/JobsVBox"]
 layout_mode = 2
 size_flags_vertical = 3
 editable = false
+
+[connection signal="item_selected" from="HSplitContainer/QueuesTree" to="." method="_on_queues_tree_item_selected"]
+[connection signal="item_selected" from="HSplitContainer/JobsVBox/JobsTree" to="." method="_on_jobs_tree_item_selected"]
