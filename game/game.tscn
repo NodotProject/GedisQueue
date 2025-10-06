@@ -34,9 +34,16 @@ offset_bottom = 20.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="AddJobButton" type="Button" parent="VBoxContainer"]
+[node name="HBoxContainer2" type="HBoxContainer" parent="VBoxContainer"]
+layout_mode = 2
+
+[node name="AddJobButton" type="Button" parent="VBoxContainer/HBoxContainer2"]
 layout_mode = 2
 text = "Add Job"
+
+[node name="Add100JobButton" type="Button" parent="VBoxContainer/HBoxContainer2"]
+layout_mode = 2
+text = "Add 100 Jobs"
 
 [node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer"]
 layout_mode = 2
@@ -56,6 +63,7 @@ allow_greater = true
 layout_mode = 2
 text = "Clear Queue"
 
-[connection signal="pressed" from="VBoxContainer/AddJobButton" to="." method="_on_add_job_button_pressed"]
+[connection signal="pressed" from="VBoxContainer/HBoxContainer2/AddJobButton" to="." method="_on_add_job_button_pressed"]
+[connection signal="pressed" from="VBoxContainer/HBoxContainer2/Add100JobButton" to="." method="_on_add_100_job_button_pressed"]
 [connection signal="value_changed" from="VBoxContainer/HBoxContainer/BatchSizeSpinBox" to="." method="_on_batch_size_spin_box_value_changed"]
 [connection signal="pressed" from="VBoxContainer/ClearQueueButton" to="." method="_on_clear_queue_button_pressed"]

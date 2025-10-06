@@ -6,7 +6,7 @@ var _hashes: Dictionary = {}
 var _lists: Dictionary = {}
 var _sets: Dictionary = {}
 var _sorted_sets: Dictionary = {}
-var _expiry: Dictionary[String, float] = {}
+var _expiry: Dictionary = {}
 
 # Pub/Sub registries
 var _subscribers: Dictionary[String, Array] = {}
@@ -205,4 +205,8 @@ func ks(key: String) -> String:
 	return "gedis:keyspace:" + key
 	
 func rks(key: String) -> String:
-	return key.substr("gedis:keyspace:".length())
+	var prefix = "gedis:keyspace:"
+	if key.begins_with(prefix):
+		return key.substr(prefix.length())
+	else:
+		return key

@@ -1,0 +1,48 @@
+[gd_scene load_steps=2 format=3 uid="uid://b5h5h5h5h5h5"]
+
+[ext_resource type="Script" uid="uid://c5fv5yw1cok24" path="res://addons/GedisQueue/debugger/gedis_queue_debugger_panel.gd" id="1_abcde"]
+
+[node name="GedisQueueDebuggerPanel" type="VBoxContainer" node_paths=PackedStringArray("queues_tree", "jobs_tree", "job_details_text", "refresh_button")]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+script = ExtResource("1_abcde")
+queues_tree = NodePath("HSplitContainer/QueuesTree")
+jobs_tree = NodePath("HSplitContainer/JobsVBox/JobsTree")
+job_details_text = NodePath("HSplitContainer/JobsVBox/JobDetailsText")
+refresh_button = NodePath("RefreshButton")
+
+[node name="RefreshButton" type="Button" parent="."]
+layout_mode = 2
+text = "Refresh Queues"
+
+[node name="HSplitContainer" type="HSplitContainer" parent="."]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="QueuesTree" type="Tree" parent="HSplitContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 0.3
+columns = 2
+column_titles_visible = true
+select_mode = 1
+
+[node name="JobsVBox" type="VBoxContainer" parent="HSplitContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="JobsTree" type="Tree" parent="HSplitContainer/JobsVBox"]
+layout_mode = 2
+size_flags_vertical = 3
+columns = 3
+column_titles_visible = true
+select_mode = 1
+
+[node name="JobDetailsText" type="TextEdit" parent="HSplitContainer/JobsVBox"]
+layout_mode = 2
+size_flags_vertical = 3
+editable = false
+
+[connection signal="item_selected" from="HSplitContainer/QueuesTree" to="." method="_on_queues_tree_item_selected"]
+[connection signal="item_selected" from="HSplitContainer/JobsVBox/JobsTree" to="." method="_on_jobs_tree_item_selected"]

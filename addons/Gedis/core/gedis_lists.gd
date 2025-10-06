@@ -36,7 +36,7 @@ func lpop(key: String):
 		return null
 	if not _gedis._core._lists.has(key):
 		return null
-	var a: Array = _gedis._core._lists[key]
+	var a: Array = _gedis._core._lists[key].duplicate()
 	if a.is_empty():
 		return null
 	var v = a.pop_front()
@@ -53,7 +53,7 @@ func rpop(key: String):
 		return null
 	if not _gedis._core._lists.has(key):
 		return null
-	var a: Array = _gedis._core._lists[key]
+	var a: Array = _gedis._core._lists[key].duplicate()
 	if a.is_empty():
 		return null
 	var v = a.pop_back()
@@ -71,10 +71,15 @@ func llen(key: String) -> int:
 	var a: Array = _gedis._core._lists.get(key, [])
 	return a.size()
 
+func lexists(key: String) -> bool:
+	if _gedis._expiry._is_expired(key):
+		return false
+	return _gedis._core._lists.has(key)
+
 func lget(key: String) -> Array:
 	if _gedis._expiry._is_expired(key):
 		return []
-	return _gedis._core._lists.get(key, [])
+	return _gedis._core._lists.get(key, []).duplicate()
 
 func lrange(key: String, start: int, stop: int) -> Array:
 	if _gedis._expiry._is_expired(key):
@@ -114,7 +119,7 @@ func lset(key: String, index: int, value) -> bool:
 		return false
 	if not _gedis._core._lists.has(key):
 		return false
-	var a: Array = _gedis._core._lists[key]
+	var a: Array = _gedis._core._lists[key].duplicate()
 	var n = a.size()
 	if index < 0:
 		index = n + index
@@ -227,7 +232,7 @@ func ltrim(key: String, start: int, stop: int) -> bool:
 	if not _gedis._core._lists.has(key):
 		return false
 
-	var a: Array = _gedis._core._lists[key]
+	var a: Array = _gedis._core._lists[key].duplicate()
 	var n = a.size()
 
 	if start < 0:
@@ -264,7 +269,7 @@ func linsert(key: String, position: String, pivot: Variant, value: Variant) -> i
 	if not _gedis._core._lists.has(key):
 		return 0
 
-	var a: Array = _gedis._core._lists[key]
+	var a: Array = _gedis._core._lists[key].duplicate()
 	var n = a.size()
 	var index = -1
 
