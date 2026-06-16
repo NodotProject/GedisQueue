@@ -6,21 +6,22 @@ const GedisQueueDebuggerPanel = preload("res://addons/GedisQueue/debugger/gedis_
 var queue_debugger_plugin
 var queue_panel
 var dashboard
+var _inject_timer: Timer
 
 func _enter_tree():
 	queue_debugger_plugin = GedisQueueDebuggerPlugin.new()
 	add_debugger_plugin(queue_debugger_plugin)
-	
-	var timer = Timer.new()
-	timer.wait_time = 1
-	timer.timeout.connect(_on_timer_timeout)
-	add_child(timer)
-	timer.start()
+
+	_inject_timer = Timer.new()
+	_inject_timer.wait_time = 1
+	_inject_timer.timeout.connect(_on_timer_timeout)
+	add_child(_inject_timer)
+	_inject_timer.start()
 
 func _on_timer_timeout():
 	var editor_node = EditorInterface.get_base_control()
 	dashboard = editor_node.find_child("Gedis", true, false)
-	
+
 	if dashboard:
 		var debugger = dashboard.plugin
 		if debugger:
@@ -32,10 +33,15 @@ func _on_timer_timeout():
 					queue_panel.name = "Queue"
 					tab_container.add_child(queue_panel)
 					queue_panel.set_plugin(debugger)
-				
+
+				# The panel is injected; further per-session registration is
+				# handled by the debugger plugin's _setup_session hook, so the
+				# poll timer has done its one-time job and can stop.
+				queue_debugger_plugin.queue_panel = queue_panel
 				var session_id = debugger.get_current_session_id()
 				if session_id != -1:
 					queue_debugger_plugin.set_queue_panel(session_id, queue_panel)
+				_inject_timer.stop()
 
 
 func _exit_tree():
@@ -47,9 +53,16 @@ func _exit_tree():
 
 class GedisQueueDebuggerPlugin extends EditorDebuggerPlugin:
 	var queue_panels = {}
+	var queue_panel
 
 	func set_queue_panel(session_id, panel):
 		queue_panels[session_id] = panel
+
+	func _setup_session(session_id):
+		# Sessions get a fresh id on every game restart; map each one to the
+		# injected panel here so captures keep flowing without polling.
+		if queue_panel:
+			queue_panels[session_id] = queue_panel
 
 	func _has_capture(capture):
 		return capture == "gedis"
